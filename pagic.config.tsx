@@ -3,7 +3,7 @@
 export default {
   srcDir: 'pagic.org',
   theme: 'docs',
-  plugins: ['sidebar', 'prev_next', 'i18n', 'blog', 'ga'],
+  plugins: ['sidebar', 'prev_next', 'i18n', 'blog'],
   title: 'Pagic',
   description: 'A static site generator powered by Deno + React',
   // head: (
@@ -50,9 +50,6 @@ export default {
       'docs/demos.md',
       'docs/limitations.md',
     ],
-  },
-  ga: {
-    id: 'UA-45256157-16',
   },
   blog: {
     root: '/blog/',
