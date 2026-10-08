@@ -23,7 +23,15 @@ export interface PagePropsBlog {
     name: string;
     count: number;
   }[];
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    /** blog root, e.g. '/blog/' */
+    root: string;
+  };
 }
+
+const POSTS_PER_PAGE = 5;
 
 const blog: PagicPlugin = {
   name: 'blog',
@@ -158,12 +166,55 @@ const blog: PagicPlugin = {
         };
       });
 
-      pagic.pagePropsMap[pagePath].blog = {
-        isPost: `/${pagePath}`.startsWith(configBlogPath) && !`/${outputPath}`.endsWith('/index.html'),
-        posts,
+      const totalPages = Math.max(1, Math.ceil(posts.length / POSTS_PER_PAGE));
+      const isBlogIndex =
+        `/${pagePath}`.startsWith(configBlogPath) && `/${outputPath}`.endsWith('/index.html');
+
+      const blogPropForPage = (pageNum: number) => ({
+        isPost: false,
+        posts: posts.slice((pageNum - 1) * POSTS_PER_PAGE, pageNum * POSTS_PER_PAGE),
         categories,
         tags,
-      };
+        pagination: {
+          currentPage: pageNum,
+          totalPages,
+          root: configBlogPath,
+        },
+      });
+
+      // Generate /blog/page/2/, /blog/page/3/, ... (runs once, when processing the blog index)
+      if (isBlogIndex && totalPages > 1) {
+        const indexProps = pagic.pagePropsMap[pagePath];
+        for (let pageNum = 2; pageNum <= totalPages; pageNum++) {
+          const pgPagePath = `${configBlogPath.slice(1)}page/${pageNum}/`;
+          if (pagic.pagePaths.includes(pgPagePath)) {
+            continue;
+          }
+          pagic.pagePaths.push(pgPagePath);
+          pagic.pagePropsMap[pgPagePath] = {
+            config: indexProps.config,
+            pagePath: pgPagePath,
+            layoutPath: 'blog/_layout.tsx',
+            outputPath: `${pgPagePath}index.html`,
+            head: null,
+            script: null,
+            footer: pagic.config.footer ?? null,
+            title: indexProps.title,
+            content: null,
+            blog: blogPropForPage(pageNum),
+          };
+        }
+      }
+
+      pagic.pagePropsMap[pagePath].blog = isBlogIndex
+        ? blogPropForPage(1)
+        : {
+            isPost:
+              `/${pagePath}`.startsWith(configBlogPath) && !`/${outputPath}`.endsWith('/index.html'),
+            posts,
+            categories,
+            tags,
+          };
     }
   },
 };
